@@ -11,8 +11,8 @@ monId=-1
 for monitor in get_monitors():
     monId+=1
     if monitor.is_primary:
-        width=monitor.width/2
-        height=monitor.height/2
+        width=monitor.width/1.1
+        height=monitor.height/1.1
         break
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 try:
@@ -31,7 +31,7 @@ movingDown = False
 FPS=240
 playerpos = 0.5
 playersize = 0.15
-playerSpeed = 1
+playerSpeed = 1.5
 
 player2pos = 0.5
 
@@ -39,14 +39,23 @@ ballX = width/2
 ballY = height/2
 ballSize = width/100
 ballVelX = width/2
+velIncrease = width/40
 ballVelY = 0
 pauseTimer = 1
 
-def drawTrackPoint(x,y):
-    pygame.draw.rect(screen,(0,255,0),(x-7,y-7,14,14))
+queuedRects=[]
+last=""
+def playsound(snd,vol):
+    global last
+    if snd==last:pygame.mixer.music.set_volume(vol);pygame.mixer.music.play()
+    else:pygame.mixer.music.load("snd/"+snd);pygame.mixer.music.set_volume(vol);pygame.mixer.music.play()
+    last=snd
 
-def ballPredict():
-    paddlePos=width-(width/40)
+def drawTrackPoint(x,y,lx,ly):
+    pygame.draw.line(screen,(127,64,0),(lx,ly),(x,y),width=1)
+    queuedRects.append((x-7,y-7,14,14))
+
+def ballPredict(paddlePos):
     tempballX=ballX
     tempballY=ballY
     tempballVelX=ballVelX
@@ -57,7 +66,7 @@ def ballPredict():
     while True:
         totalCalculations+=1
         if calcY > ballSize/2 and calcY < height-ballSize/2:
-            drawTrackPoint(paddlePos,calcY)
+            drawTrackPoint(paddlePos,calcY,tempballX,tempballY)
             break
         else:
             if calcY < ballSize/2:
@@ -67,20 +76,18 @@ def ballPredict():
             dist=dist-pushback
             px=tempballX+(tempballVelX*dist)
             py=tempballY+(tempballVelY*dist)
+            drawTrackPoint(px,py,tempballX,tempballY)
             tempballX=px
             tempballY=py
             tempballVelY*=-1
             dist=(paddlePos-tempballX)/tempballVelX
             calcY=tempballY+(tempballVelY*dist)
-            drawTrackPoint(px,py)
-       if totalCalculations == 5:
-            calcY = height/2
+        if totalCalculations == 3:
             break
     return calcY/height
-
+playsound("win.wav",1)
 while running:
     screen.fill((24,24,24))
-    #input
     for event in pygame.event.get():
         if event.type == 256:
             running = False
@@ -94,7 +101,6 @@ while running:
                 movingUp = False
             elif event.key == 115 or event.key == 1073741905:
                 movingDown = False
-    
     #logic
     tick=clock.tick(FPS)/1000
     if pauseTimer <= 0:
@@ -114,7 +120,7 @@ while running:
             elif 0.5 < player2pos:
                 movingUp2 = True
         else:
-            target=ballPredict()
+            target=ballPredict(width-(width/40))
             if target > player2pos:
                 movingDown2 = True
             elif target < player2pos:
@@ -135,27 +141,35 @@ while running:
         ballY+=ballVelY*tick
         if ballX >= (width-(width/40))-ballSize/2 and ballVelX > 0:
             if ballY <= height*player2pos+(height*(playersize/2)) and ballY >= (height*player2pos)-(height*(playersize/2)):
-                ballVelX*=-1.05
-                ballVelY=random.randrange(math.floor(ballVelX),math.floor(-ballVelX))
+                ballVelX+=velIncrease
+                ballVelX*=-1
+                playsound("paddle.wav",1)
+                ballVelY=random.randrange(math.floor(ballVelX/1.5),math.floor(-ballVelX/1.5))
                 ballX=(width-width/40)-((width-width/40)-ballX)
             else:
                 if ballX > width-ballSize/2:
                     pauseTimer = 1
+                    playsound("win.wav",1)
         elif ballX <= width/40+ballSize/2 and ballVelX < 0:
             if ballY <= height*playerpos+(height*(playersize/2)) and ballY >= (height*playerpos)-(height*(playersize/2)):
-                ballVelX*=-1.05
-                ballVelY=random.randrange(math.floor(-ballVelX),math.floor(ballVelX))
+                ballVelX*=-1
+                ballVelX+=velIncrease
+                playsound("paddle.wav",1)
+                ballVelY=random.randrange(math.floor(-ballVelX/1.5),math.floor(ballVelX/1.5))
                 ballX=(width/40)+((width/40)-ballX)
             else:
                 if ballX < 0+ballSize/2:
                     pauseTimer = 1
+                    playsound("win.wav",1)
 
         if ballY <= ballSize/2:
             ballVelY*=-1
             ballY = ballSize/2+(ballSize/2-ballY)
+            playsound("bounce.wav",1)
         elif ballY >= height-ballSize/2:
             ballVelY*=-1
             ballY = (height-ballSize/2)+((height-ballSize/2)-ballY)
+            playsound("bounce.wav",1)
     else:
         ballX = width/2
         ballY = height/2
@@ -165,8 +179,13 @@ while running:
         player2pos = 0.5
         playerpos = 0.5
         pauseTimer-=tick
+        if pauseTimer <= 0:
+            playsound("start.wav",1)
     
     #rendering
+    for x in queuedRects:
+        pygame.draw.rect(screen,(0,127,0),x)
+    queuedRects=[]
     pygame.draw.rect(screen,(255,255,255),(width/80,(height*playerpos)-((height*playersize)/2),width/80,height*playersize))
     pygame.draw.rect(screen,(255,255,255),(width-width/40,(height*player2pos)-((height*playersize)/2),width/80,height*playersize))
     pygame.draw.rect(screen,(255,255,255),(ballX-ballSize/2,ballY-ballSize/2,ballSize,ballSize))
