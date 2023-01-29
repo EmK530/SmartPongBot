@@ -53,7 +53,9 @@ def ballPredict():
     tempballVelY=ballVelY
     dist=(paddlePos-tempballX)/tempballVelX
     calcY=tempballY+(tempballVelY*dist)
+    totalCalculations=0
     while True:
+        totalCalculations+=1
         if calcY > ballSize/2 and calcY < height-ballSize/2:
             drawTrackPoint(paddlePos,calcY)
             break
@@ -71,6 +73,9 @@ def ballPredict():
             dist=(paddlePos-tempballX)/tempballVelX
             calcY=tempballY+(tempballVelY*dist)
             drawTrackPoint(px,py)
+       if totalCalculations == 5:
+            calcY = height/2
+            break
     return calcY/height
 
 while running:
