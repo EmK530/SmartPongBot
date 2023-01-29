@@ -91,6 +91,7 @@ while running:
     #logic
     tick=clock.tick(FPS)/1000
     if pauseTimer <= 0:
+        #AI
         movingUp = False
         movingDown = False
         if ballVelX > 0:
@@ -110,8 +111,6 @@ while running:
             playerpos-=playerSpeed*tick
         elif movingDown:
             playerpos+=playerSpeed*tick
-
-        #AI
         movingUp2 = False
         movingDown2 = False
         if ballVelX < 0:
